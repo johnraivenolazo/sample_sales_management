@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from './supabaseClient'
 import { isGoogleAccount, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut } from './auth'
 import './App.css'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
 
 function App() {
   const [count, setCount] = useState(0)
@@ -19,9 +14,25 @@ function App() {
   const [error, setError] = useState('')
   const [isGoogleUser, setIsGoogleUser] = useState(false)
 
-  // Check auth state on mount
+  // Check auth state on mount and listen for changes
   useEffect(() => {
     checkAuthState()
+
+    // Listen for auth state changes (e.g., OAuth redirects)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        setIsLoggedIn(true)
+        const isGoogle = await isGoogleAccount()
+        setIsGoogleUser(isGoogle)
+      } else {
+        setIsLoggedIn(false)
+        setIsGoogleUser(false)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   const checkAuthState = async () => {

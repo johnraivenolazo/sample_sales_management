@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
+import { supabase } from './supabaseClient'
 
 // Check if user is logged in
 export const checkUserLoggedIn = async () => {
@@ -26,8 +21,8 @@ export const isGoogleAccount = async () => {
     const user = data.user
     if (!user) return false
 
-    // Check if provider is Google
-    const isGoogle = user.app_metadata?.provider === 'google'
+    // Check if provider is Google by looking at identities array
+    const isGoogle = user.identities?.some(identity => identity.provider === 'google') || false
     return isGoogle
   } catch (err) {
     console.error('Error checking provider:', err.message)
@@ -53,7 +48,9 @@ export const getUserProvider = async () => {
     const user = await getCurrentUser()
     if (!user) return null
 
-    const provider = user.app_metadata?.provider || 'email'
+    // Check identities array for provider
+    const identity = user.identities?.[0]
+    const provider = identity?.provider || 'email'
     return provider
   } catch (err) {
     console.error('Error getting provider:', err.message)
